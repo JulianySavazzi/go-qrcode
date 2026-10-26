@@ -1,0 +1,23 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${PORT}:${PORT}"
+    environment:
+      PORT: "${PORT}"
+    init: true
+    stop_grace_period: 10s
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - "http://127.0.0.1:${PORT}/health"
+      interval: 10s
+      timeout: 2s
+      start_period: 5s
+      retries: 3
