@@ -16,7 +16,7 @@ services:
         - -q
         - -O
         - /dev/null
-        - "http://127.0.0.1:${PORT}/health"
+        - "http://127.0.0.1:${PORT}/v1/health"
       interval: 10s
       timeout: 2s
       start_period: 5s

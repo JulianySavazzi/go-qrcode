@@ -2,7 +2,7 @@
 
 Api em go para gerar QR Code a partir de um link.
 
-Endpoint para checar se o servidor está rodando localmente: [http://127.0.0.1:8080/health](http://127.0.0.1:8080/health)
+Endpoint para checar se o servidor está rodando localmente: [http://127.0.0.1:8080/v1/health](http://127.0.0.1:8080/v1/health)
 
 
 ```
@@ -15,5 +15,5 @@ docker run --rm \
   go mod init go-qrcode
   
 # subir container
-docker compose up  
+docker compose up --build -d
 ```

@@ -14,13 +14,16 @@ func main() {
 		log.Fatal("The environment PORT must be defined")
 	}
 
-	mux := http.NewServeMux()
+	api := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"200", "message": "ok"}`))
 	})
+
+	mux := http.NewServeMux()
+	mux.Handle("/v1/", http.StripPrefix("/v1", api))
 
 	server := &http.Server{
 		Addr:              net.JoinHostPort("", port),
