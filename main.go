@@ -4,9 +4,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 	"encoding/json"
+	"io"
 )
 
 func main() {
@@ -17,20 +19,9 @@ func main() {
 
 	api := http.NewServeMux()
 
-	api.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		responseApiJson(
-		    w,
-        	http.StatusOk,
-        	map[string]string{
-        	    "status": "ok",
-        	    "message": "Success"
-        	},
-            nil,
-        )
-	})
-    api.HandleFunc("POST /qr-code", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("GET /health", health)
 
-    })
+    api.HandleFunc("POST /qr-code", createQrCode)
 
 	mux := http.NewServeMux()
 	mux.Handle("/v1/", http.StripPrefix("/v1", api))
@@ -48,7 +39,73 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func responseApiJson(
+type QrCodeRequest struct {
+    Source string `json:"source"`
+    Size *int `json:"size"`
+}
+
+/**
+ * validates te request body
+ * source is a URL from generates QR-QrCode
+ * and size is QR-CODE size, by default is 256
+ */
+func validateQrCodeRequest(request QrCodeRequest) error {
+    parsedUrl, err := url.Parse(request.source)
+    if err != nil || (parsedUrl.Schema != "http" && != parsedUrl.Schema != "https") || parsedUrl.Hostname() == "" {
+        return errors.New("Source must be a valid URL, with http or https")
+    }
+    if request.Size != nil {
+        if *request.Size < 128 || *request.Size > 1024 {
+            return errors.New("Size must be a integer between 128 and 1024 pixels")
+        }
+    }
+    return nil
+}
+
+func createQrCode(w http.ResponseWriter, r *http.Request) {
+    var request QrCodeRequest
+    err := decodeJSON(w, r, &request)
+    statusCode := http.StatusUnprocessableEntity
+    if err != nil {
+        message := "Invalid body, send a valid string source and optional integer size"
+        _, bodyTooLarge := err.(*http.MaxBytesError)
+        /** bytes limit for body - string source and int size **/
+        if bodyTooLarge {
+            message = "The body must be less than 8 KiB"
+        }
+        ResponseApiJson(
+            w,
+            statusCode,
+            map[string]string{"error": message},
+            nil
+        )
+        return
+    }
+    err = validateQrCodeRequest(request)
+    if err != nil {
+        ResponseApiJson(
+            w,
+            statusCode,
+            map[string]string{"error": err.Error()}
+            nil,
+        )
+        return
+    }
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+    ResponseApiJson(
+        w,
+	    http.StatusOk,
+	    map[string]string{
+	        "status": "ok",
+	        "message": "Success"
+	    },
+        nil,
+    )
+}
+
+func ResponseApiJson(
     writer http.ResponseWriter,
     statusCode int,
     data any,
