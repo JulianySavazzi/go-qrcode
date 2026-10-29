@@ -16,4 +16,11 @@ docker run --rm \
   
 # subir container
 docker compose up --build -d
+
+# instalar a lib go-qrcode
+docker run --rm \
+  -v "$PWD":/app \
+  -w /app \
+  golang:1.26-alpine \
+  go get github.com/skip2/go-qrcode
 ```

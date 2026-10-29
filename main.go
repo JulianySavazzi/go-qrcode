@@ -63,16 +63,16 @@ func validateQrCodeRequest(request QrCodeRequest) error {
 }
 
 func createQrCode(w http.ResponseWriter, r *http.Request) {
-    var request QrCodeRequest
-    err := decodeJSON(w, r, &request)
+    /** bytes limit for body - string source and int size **/
+    const maxBodySizeKiB = 8 * 1024
+
+    body, err := io.ReadAll(io.LimitReader(r.Body, maxBodySizeKiB + 1)
     statusCode := http.StatusUnprocessableEntity
+    message := "Invalid body, send a valid string source and optional integer size"
+
     if err != nil {
-        message := "Invalid body, send a valid string source and optional integer size"
-        _, bodyTooLarge := err.(*http.MaxBytesError)
-        /** bytes limit for body - string source and int size **/
-        if bodyTooLarge {
-            message = "The body must be less than 8 KiB"
-        }
+        message = "Could not read request body"
+        statusCode = http.StatusBadRequest
         ResponseApiJson(
             w,
             statusCode,
@@ -81,6 +81,31 @@ func createQrCode(w http.ResponseWriter, r *http.Request) {
         )
         return
     }
+
+    if len(body) > maxBodySizeKiB {
+        message = "The body must not exceed 8 KiB"
+        statusCode = http.StatusRequestEntityTooLarge
+        ResponseApiJson(
+                w,
+                statusCode,
+                map[string]string{"error": message},
+                nil
+            )
+        return
+    }
+
+    var request QrCodeRequest
+    err = json.Unmarshal(body, &request)
+    if err != nil {
+        ResponseApiJson(
+            w,
+            statusCode,
+            map[string]string{"error": message}
+            nil,
+        )
+        return
+    }
+
     err = validateQrCodeRequest(request)
     if err != nil {
         ResponseApiJson(
@@ -91,6 +116,13 @@ func createQrCode(w http.ResponseWriter, r *http.Request) {
         )
         return
     }
+
+    size := 256
+    if request.Size != nil {
+        size = *request.Size
+    }
+
+    // TODO generate QR CODE
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
