@@ -9,6 +9,7 @@ import (
 	"time"
 	"encoding/json"
 	"io"
+	"github.com/skip2/go-qrcode"
 )
 
 func main() {
@@ -21,7 +22,9 @@ func main() {
 
 	api.HandleFunc("GET /health", health)
 
-    api.HandleFunc("POST /qr-code", createQrCode)
+    api.HandleFunc("POST /qr-code", func(w http.ResponseWriter, r *http.Request) {
+        createQrCode(w, r, "Content-Disposition", "inline")
+    })
 
 	mux := http.NewServeMux()
 	mux.Handle("/v1/", http.StripPrefix("/v1", api))
@@ -62,7 +65,7 @@ func validateQrCodeRequest(request QrCodeRequest) error {
     return nil
 }
 
-func createQrCode(w http.ResponseWriter, r *http.Request) {
+func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerType string) {
     /** bytes limit for body - string source and int size **/
     const maxBodySizeKiB = 8 * 1024
 
@@ -117,12 +120,27 @@ func createQrCode(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    size := 256
-    if request.Size != nil {
-        size = *request.Size
+    png, err := GenerateQrCode(request, nil)
+    if err != nil {
+        statusCode = http.StatusBadRequest
+        ResponseApiJson(
+            w,
+            statusCode,
+            map[string]string{"error": err.Error()}
+            nil,
+        )
+        return
     }
 
-    // TODO generate QR CODE
+    w.Header().Set("Content-Type", "image/png")
+    w.Header().Set(header, headerType)
+    w.WriteHeader(http.StatusOk)
+
+    _, writeErr := w.Write(png)
+    if writeErr != nil {
+    	log.Printf("Error sending QR Code: %v", writeErr)
+    }
+
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
@@ -164,5 +182,40 @@ func ResponseApiJson(
     _, writerErr := writer.Write(responseBody)
     if writerErr != nil {
         log.Printf("Error to send response: %v", writerErr)
+    }
+}
+
+func GenerateQrCode(data QrCodeRequest, writeFile *bool) {
+    var png []byte
+    generateFile := false
+    if writeFile != nil {
+        generateFile = *writeFile
+    }
+
+    size := 256
+    if request.Size != nil {
+        size = *request.Size
+    }
+
+    switch generateFile {
+        case true:
+            err := qrcode.WriteColorFile(
+                data.Source,
+                qrcode.Medium,
+                size,
+                color.Black,
+                color.White,
+                "qrcode.png"
+            )
+            if err != nil {
+                return nil, err
+            }
+            return nil, nil
+        default:
+            png, err := qrcode.Encode(data.Source, qrcode.Medium, size)
+            if err != nil {
+                return nil, err
+            }
+            return png, nil
     }
 }

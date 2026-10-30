@@ -24,3 +24,6 @@ docker run --rm \
   golang:1.26-alpine \
   go get github.com/skip2/go-qrcode
 ```
+
+## Documentações:
+[skip2 go-qrcode lib](https://github.com/skip2/go-qrcode)
