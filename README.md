@@ -32,8 +32,13 @@ docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go mod tidy
 # compilar código go
 docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go build -o /dev/null .
 
-# inspecionar se algum modulo apresenta erros de código
+# verificar/inspecionar se algum modulo apresenta erros de código
 docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go vet ./...
+
+# executar testes com a saída detalhada
+docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go test -v ./...
+# ou sem saída detalhada:
+docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go test 
 ```
 
 ## Documentações:
