@@ -14,7 +14,7 @@ docker run --rm \
   golang:1.26-alpine \
   go mod init go-qrcode
   
-# subir container
+# subir container com o server http
 docker compose up --build -d
 
 # instalar a lib go-qrcode
@@ -23,6 +23,15 @@ docker run --rm \
   -w /app \
   golang:1.26-alpine \
   go get github.com/skip2/go-qrcode
+  
+# atualizar dependências
+docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go mod tidy  
+
+# compilar código go
+docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go build -o /dev/null .
+
+# inspecionar se algum modulo apresenta erros de código
+docker run --rm -v "$PWD":/app -w /app golang:1.26-alpine go vet ./...
 ```
 
 ## Documentações:

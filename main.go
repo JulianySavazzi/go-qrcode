@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"io"
 	"github.com/skip2/go-qrcode"
+	"errors"
+	"image/color"
 )
 
 func main() {
@@ -48,13 +50,13 @@ type QrCodeRequest struct {
 }
 
 /**
- * validates te request body
- * source is a URL from generates QR-QrCode
+ * validates to request body
+ * source is a URL from generates QR-Code
  * and size is QR-CODE size, by default is 256
  */
 func validateQrCodeRequest(request QrCodeRequest) error {
-    parsedUrl, err := url.Parse(request.source)
-    if err != nil || (parsedUrl.Schema != "http" && != parsedUrl.Schema != "https") || parsedUrl.Hostname() == "" {
+    parsedUrl, err := url.Parse(request.Source)
+    if err != nil || (parsedUrl.Scheme != "http" && parsedUrl.Scheme != "https") || parsedUrl.Hostname() == "" {
         return errors.New("Source must be a valid URL, with http or https")
     }
     if request.Size != nil {
@@ -69,7 +71,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
     /** bytes limit for body - string source and int size **/
     const maxBodySizeKiB = 8 * 1024
 
-    body, err := io.ReadAll(io.LimitReader(r.Body, maxBodySizeKiB + 1)
+    body, err := io.ReadAll(io.LimitReader(r.Body, maxBodySizeKiB + 1))
     statusCode := http.StatusUnprocessableEntity
     message := "Invalid body, send a valid string source and optional integer size"
 
@@ -80,7 +82,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
             w,
             statusCode,
             map[string]string{"error": message},
-            nil
+            nil,
         )
         return
     }
@@ -92,7 +94,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
                 w,
                 statusCode,
                 map[string]string{"error": message},
-                nil
+                nil,
             )
         return
     }
@@ -103,7 +105,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
         ResponseApiJson(
             w,
             statusCode,
-            map[string]string{"error": message}
+            map[string]string{"error": message},
             nil,
         )
         return
@@ -114,7 +116,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
         ResponseApiJson(
             w,
             statusCode,
-            map[string]string{"error": err.Error()}
+            map[string]string{"error": err.Error()},
             nil,
         )
         return
@@ -126,7 +128,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
         ResponseApiJson(
             w,
             statusCode,
-            map[string]string{"error": err.Error()}
+            map[string]string{"error": err.Error()},
             nil,
         )
         return
@@ -134,7 +136,7 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
 
     w.Header().Set("Content-Type", "image/png")
     w.Header().Set(header, headerType)
-    w.WriteHeader(http.StatusOk)
+    w.WriteHeader(http.StatusOK)
 
     _, writeErr := w.Write(png)
     if writeErr != nil {
@@ -146,10 +148,10 @@ func createQrCode(w http.ResponseWriter, r *http.Request, header string, headerT
 func health(w http.ResponseWriter, r *http.Request) {
     ResponseApiJson(
         w,
-	    http.StatusOk,
+	    http.StatusOK,
 	    map[string]string{
 	        "status": "ok",
-	        "message": "Success"
+	        "message": "Success",
 	    },
         nil,
     )
@@ -185,16 +187,15 @@ func ResponseApiJson(
     }
 }
 
-func GenerateQrCode(data QrCodeRequest, writeFile *bool) {
-    var png []byte
+func GenerateQrCode(data QrCodeRequest, writeFile *bool) ([]byte, error) {
     generateFile := false
     if writeFile != nil {
         generateFile = *writeFile
     }
 
     size := 256
-    if request.Size != nil {
-        size = *request.Size
+    if data.Size != nil {
+        size = *data.Size
     }
 
     switch generateFile {
@@ -205,7 +206,7 @@ func GenerateQrCode(data QrCodeRequest, writeFile *bool) {
                 size,
                 color.Black,
                 color.White,
-                "qrcode.png"
+                "qrcode.png",
             )
             if err != nil {
                 return nil, err
