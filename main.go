@@ -168,7 +168,7 @@ func ResponseApiJson(
     if err != nil {
         statusCode = http.StatusInternalServerError
         /** catch the json Marshal error **/
-        responseBody = []byte(`{error: "Response error"}`)
+        responseBody = []byte(`{"error": "Response error"}`)
     }
 
     /** set additional headers **/
