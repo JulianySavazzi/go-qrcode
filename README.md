@@ -14,8 +14,10 @@ docker run --rm \
   golang:1.26-alpine \
   go mod init go-qrcode
   
-# subir container com o server http
+# subir container com o server http - precisa ser feito sempre que alterar o código
 docker compose up --build -d
+# ou:
+docker compose up --build -d api
 
 # instalar a lib go-qrcode
 docker run --rm \
